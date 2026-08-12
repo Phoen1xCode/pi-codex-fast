@@ -37,7 +37,6 @@ pi install npm:@phoen1xcode/pi-codex-fast
 /fast status
 ```
 
-`/fast` with no arguments toggles the current global value. Fast mode may consume more ChatGPT credits.
 
 ## Configuration
 
