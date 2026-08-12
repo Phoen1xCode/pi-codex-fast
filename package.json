@@ -1,0 +1,61 @@
+{
+  "name": "@phoen1xcode/pi-codex-fast",
+  "version": "0.1.0",
+  "description": "A Pi Extension for OpenAI Codex Fast Mode.",
+  "keywords": [
+    "codex",
+    "fast-mode",
+    "openai",
+    "pi-coding-agent",
+    "pi-extension",
+    "pi-package"
+  ],
+  "homepage": "https://github.com/Phoen1xCode/pi-codex-fast#readme",
+  "bugs": {
+    "url": "https://github.com/Phoen1xCode/pi-codex-fast/issues"
+  },
+  "license": "MIT",
+  "author": "Phoen1xCode",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Phoen1xCode/pi-codex-fast.git"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run fmt:check && npm run typecheck && npm test",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check",
+    "prepublishOnly": "npm run check"
+  },
+  "dependencies": {
+    "proper-lockfile": "^4.1.2"
+  },
+  "devDependencies": {
+    "@earendil-works/pi-coding-agent": "0.84.1",
+    "@types/node": "^24.0.0",
+    "@types/proper-lockfile": "^4.1.4",
+    "oxfmt": "^0.63.0",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": ">=0.84.0"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "pi": {
+    "extensions": [
+      "./src/index.ts"
+    ]
+  }
+}
