@@ -24,6 +24,10 @@ function createHarness(agentDir: string) {
       assert.equal(name, "fast");
       command = value;
     },
+    registerProvider(name: string, value: { api?: string }) {
+      assert.equal(name, "openai-codex");
+      assert.equal(value.api, "openai-codex-responses");
+    },
   } as unknown as ExtensionAPI;
 
   createCodexFastExtension({ agentDir })(pi);

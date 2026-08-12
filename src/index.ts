@@ -4,8 +4,18 @@ import {
   type ExtensionContext,
   type ExtensionFactory,
 } from "@earendil-works/pi-coding-agent";
+import {
+  clampThinkingLevel,
+  openAICodexResponsesApi,
+  type Api,
+  type Context,
+  type Model,
+  type OpenAICodexResponsesOptions,
+  type SimpleStreamOptions,
+} from "@earendil-works/pi-ai/compat";
 import { FAST_COMMAND_USAGE, getFastCommandCompletions, parseFastCommand } from "./command.ts";
-import { describeFastMode, injectFastServiceTier } from "./fast-mode.ts";
+import { describeFastMode, getEligibility, injectFastServiceTier } from "./fast-mode.ts";
+import { CODEX_PROVIDER_ID, CODEX_RESPONSES_API_ID, FAST_SERVICE_TIER } from "./models.ts";
 import { readGlobalFastMode, writeGlobalFastMode } from "./settings.ts";
 
 export type CodexFastExtensionOptions = {
@@ -24,14 +34,47 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+const codexApi = openAICodexResponsesApi();
+
+function streamCodex(
+  model: Model<Api>,
+  context: Context,
+  options: SimpleStreamOptions | undefined,
+  fast: boolean,
+) {
+  if (!fast) return codexApi.streamSimple(model, context, options);
+
+  const reasoning = options?.reasoning ? clampThinkingLevel(model, options.reasoning) : undefined;
+  return codexApi.stream(model, context, {
+    ...options,
+    reasoningEffort: reasoning === "off" ? undefined : reasoning,
+    serviceTier: FAST_SERVICE_TIER,
+  } as OpenAICodexResponsesOptions);
+}
+
 export function createCodexFastExtension(
   options: CodexFastExtensionOptions = {},
 ): ExtensionFactory {
   return (pi: ExtensionAPI): void => {
     const agentDir = options.agentDir ?? getAgentDir();
     let enabled = false;
+    let modelRegistry: ExtensionContext["modelRegistry"] | undefined;
+
+    pi.registerProvider(CODEX_PROVIDER_ID, {
+      api: CODEX_RESPONSES_API_ID,
+      streamSimple: (model, context, options) =>
+        streamCodex(
+          model,
+          context,
+          options,
+          enabled &&
+            modelRegistry !== undefined &&
+            getEligibility({ model, modelRegistry }).eligible,
+        ),
+    });
 
     pi.on("session_start", (_event, ctx) => {
+      modelRegistry = ctx.modelRegistry;
       try {
         enabled = readGlobalFastMode(agentDir);
       } catch (error) {
