@@ -1,31 +1,35 @@
 # pi-codex-fast
 
-Pi Coding Agent 的 ChatGPT/Codex 订阅 Fast mode 全局开关。
+A global Fast mode toggle for the Pi Coding Agent's ChatGPT/Codex subscription models.
 
-扩展只在满足安全基线时给请求体补充 `service_tier: "priority"`，不会选择或修改 model、thinking level、tools、prompts，也不会读取或保存 OAuth token。
+## Features
 
-## 安装
+- Injects `service_tier: "priority"` into Codex requests only when a strict safety baseline is met
+- Never selects or modifies model, thinking level, tools, or prompts
+- Never reads or stores OAuth tokens
+- Persists state in Pi's existing `~/.pi/agent/settings.json` — no separate config file
+- Fast mode is injected only when **all** of the following hold:
+  - provider is `openai-codex`
+  - API is `openai-codex-responses`
+  - model id is on the exact allowlist
+  - `ctx.modelRegistry.isUsingOAuth(model)` is `true`
+  - payload is an object and its model matches the current model id
+  - payload does not already contain `service_tier`
+
+## Install
 
 ```bash
 pi install npm:@phoen1xcode/pi-codex-fast
 ```
 
-本地开发：
+## Usage
 
-```bash
-npm install
-npm run check
-pi -e .
-```
-
-## 使用
-
-1. 在 Pi 中执行 `/login`，选择 `OpenAI (ChatGPT Plus/Pro)`。
-2. 执行 `/model`，选择一个受支持模型：
+1. In Pi, run `/login` and choose `OpenAI (ChatGPT Plus/Pro)`.
+2. Run `/model` and pick a supported model:
    - `openai-codex/gpt-5.6-sol`
    - `openai-codex/gpt-5.6-terra`
    - `openai-codex/gpt-5.6-luna`
-3. 执行：
+3. Toggle Fast mode:
 
 ```text
 /fast on
@@ -33,11 +37,11 @@ pi -e .
 /fast status
 ```
 
-不带参数的 `/fast` 会切换当前全局值。Fast mode 可能消耗更多 ChatGPT credits。
+`/fast` with no arguments toggles the current global value. Fast mode may consume more ChatGPT credits.
 
-## 全局配置
+## Configuration
 
-状态保存在 Pi 已有的 `~/.pi/agent/settings.json`，不创建单独配置文件：
+State is stored in Pi's existing `~/.pi/agent/settings.json`:
 
 ```json
 {
@@ -47,21 +51,18 @@ pi -e .
 }
 ```
 
-扩展通过 Pi 的 `getAgentDir()` 定位该文件，因此支持 `PI_CODING_AGENT_DIR`。写入时使用与 Pi 兼容的文件锁和原子替换，并保留其他设置字段及 `settings.json` 符号链接。
+The extension locates this file via Pi's `getAgentDir()`, so `PI_CODING_AGENT_DIR` is respected. Writes use a Pi-compatible file lock and atomic replacement, preserving other settings fields and the `settings.json` symlink.
 
-这里的“全局”指持久化作用域，不代表多个 Pi 进程实时同步。每个 Pi 实例会在启动或执行 `/reload` 时读取配置；当前实例执行 `/fast` 后立即生效，其他已运行实例需要执行 `/reload` 才能读取新值。
+"Global" here means persisted scope, not real-time sync across Pi processes. Each Pi instance reads the config at startup or on `/reload`; `/fast` takes effect immediately in the current instance, while other running instances need `/reload` to pick up the new value.
 
-## 请求安全边界
+The extension passes `serviceTier: "priority"` through Pi's built-in Codex stream. The Codex backend may still report `service_tier: "default"` in responses; Pi estimates local cost based on the requested priority tier. This estimate is not equivalent to the final credits billing in the ChatGPT backend.
 
-只有以下条件全部成立才注入 Fast mode：
+To add newly verified Fast-mode models, update `SUPPORTED_MODEL_IDS` in [`src/models.ts`](src/models.ts) and add tests.
 
-- provider 是 `openai-codex`
-- API 是 `openai-codex-responses`
-- model id 位于精确 allowlist
-- `ctx.modelRegistry.isUsingOAuth(model)` 为 `true`
-- payload 是对象，且 payload model 与当前 model id 一致
-- payload 不含 `service_tier`
+## Development
 
-扩展通过 Pi 内置 Codex stream 传入 `serviceTier: "priority"`。Codex 后端可能仍在响应中回报 `service_tier: "default"`；Pi 会按请求的 priority tier 估算本地成本。该估算不等同于 ChatGPT 后台最终的 credits 结算。
-
-未来确认新模型支持 Fast mode 后，只需更新 [`src/models.ts`](src/models.ts) 的 `SUPPORTED_MODEL_IDS` 并补充测试。
+```bash
+npm install
+npm run check
+pi -e .
+```
