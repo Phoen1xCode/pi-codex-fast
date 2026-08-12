@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -48,6 +56,24 @@ test("creates settings.json and persists off explicitly", async (t) => {
 
   assert.deepEqual(JSON.parse(readFileSync(getGlobalSettingsPath(agentDir), "utf8")), {
     [SETTINGS_KEY]: { enabled: false },
+  });
+});
+
+test("preserves a symlinked settings.json while updating its target", async (t) => {
+  const agentDir = createAgentDir(t);
+  const settingsPath = getGlobalSettingsPath(agentDir);
+  const dotfilesDir = join(agentDir, "dotfiles");
+  const targetPath = join(dotfilesDir, "settings.json");
+  mkdirSync(dotfilesDir);
+  writeFileSync(targetPath, JSON.stringify({ theme: "dark" }));
+  symlinkSync(targetPath, settingsPath);
+
+  await writeGlobalFastMode(true, agentDir);
+
+  assert.equal(lstatSync(settingsPath).isSymbolicLink(), true);
+  assert.deepEqual(JSON.parse(readFileSync(targetPath, "utf8")), {
+    theme: "dark",
+    [SETTINGS_KEY]: { enabled: true },
   });
 });
 

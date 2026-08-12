@@ -1,14 +1,17 @@
 import { randomUUID } from "node:crypto";
 import {
   existsSync,
+  lstatSync,
   mkdirSync,
   readFileSync,
+  readlinkSync,
+  realpathSync,
   renameSync,
   rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import lockfile from "proper-lockfile";
 
@@ -41,6 +44,13 @@ export function readGlobalFastMode(agentDir = getAgentDir()): boolean {
   return isRecord(config) && config.enabled === true;
 }
 
+function getSettingsWritePath(settingsPath: string): string {
+  if (!lstatSync(settingsPath, { throwIfNoEntry: false })?.isSymbolicLink()) return settingsPath;
+  return existsSync(settingsPath)
+    ? realpathSync(settingsPath)
+    : resolve(dirname(settingsPath), readlinkSync(settingsPath));
+}
+
 export async function writeGlobalFastMode(
   enabled: boolean,
   agentDir = getAgentDir(),
@@ -51,7 +61,8 @@ export async function writeGlobalFastMode(
     realpath: false,
     retries: { retries: 10, factor: 1, minTimeout: 20, maxTimeout: 20 },
   });
-  const temporaryPath = `${settingsPath}.${process.pid}.${randomUUID()}.tmp`;
+  const writePath = getSettingsWritePath(settingsPath);
+  const temporaryPath = `${writePath}.${process.pid}.${randomUUID()}.tmp`;
 
   try {
     const settings = existsSync(settingsPath)
@@ -60,11 +71,12 @@ export async function writeGlobalFastMode(
     const currentConfig = isRecord(settings[SETTINGS_KEY]) ? settings[SETTINGS_KEY] : {};
     settings[SETTINGS_KEY] = { ...currentConfig, enabled };
 
+    mkdirSync(dirname(writePath), { recursive: true });
     writeFileSync(temporaryPath, `${JSON.stringify(settings, null, 2)}\n`, {
       encoding: "utf8",
       mode: existsSync(settingsPath) ? statSync(settingsPath).mode : 0o600,
     });
-    renameSync(temporaryPath, settingsPath);
+    renameSync(temporaryPath, writePath);
   } finally {
     rmSync(temporaryPath, { force: true });
     await release();
