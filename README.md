@@ -47,7 +47,9 @@ pi -e .
 }
 ```
 
-扩展通过 Pi 的 `getAgentDir()` 定位该文件，因此支持 `PI_CODING_AGENT_DIR`。写入时使用与 Pi 兼容的文件锁和原子替换，并保留其他设置字段。
+扩展通过 Pi 的 `getAgentDir()` 定位该文件，因此支持 `PI_CODING_AGENT_DIR`。写入时使用与 Pi 兼容的文件锁和原子替换，并保留其他设置字段及 `settings.json` 符号链接。
+
+这里的“全局”指持久化作用域，不代表多个 Pi 进程实时同步。每个 Pi 实例会在启动或执行 `/reload` 时读取配置；当前实例执行 `/fast` 后立即生效，其他已运行实例需要执行 `/reload` 才能读取新值。
 
 ## 请求安全边界
 
@@ -59,5 +61,7 @@ pi -e .
 - `ctx.modelRegistry.isUsingOAuth(model)` 为 `true`
 - payload 是对象，且 payload model 与当前 model id 一致
 - payload 不含 `service_tier`
+
+扩展通过 Pi 内置 Codex stream 传入 `serviceTier: "priority"`。Codex 后端可能仍在响应中回报 `service_tier: "default"`；Pi 会按请求的 priority tier 估算本地成本。该估算不等同于 ChatGPT 后台最终的 credits 结算。
 
 未来确认新模型支持 Fast mode 后，只需更新 [`src/models.ts`](src/models.ts) 的 `SUPPORTED_MODEL_IDS` 并补充测试。
