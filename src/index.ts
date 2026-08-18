@@ -4,17 +4,17 @@ import {
   type ExtensionContext,
   type ExtensionFactory,
 } from "@earendil-works/pi-coding-agent";
-import {
-  clampThinkingLevel,
-  openAICodexResponsesApi,
-  type Api,
-  type Context,
-  type Model,
-  type OpenAICodexResponsesOptions,
-  type SimpleStreamOptions,
-} from "@earendil-works/pi-ai/compat";
+import type {
+  Api,
+  Context,
+  Model,
+  OpenAICodexResponsesOptions,
+  SimpleStreamOptions,
+} from "@earendil-works/pi-ai";
+import { openAICodexResponsesApi } from "@earendil-works/pi-ai/compat";
+import { toCodexStreamOptions } from "./codex-options.ts";
 import { FAST_COMMAND_USAGE, getFastCommandCompletions, parseFastCommand } from "./command.ts";
-import { describeFastMode, getEligibility, injectFastServiceTier } from "./fast-mode.ts";
+import { describeFastMode, getEligibility } from "./fast-mode.ts";
 import { CODEX_PROVIDER_ID, CODEX_RESPONSES_API_ID, FAST_SERVICE_TIER } from "./models.ts";
 import { readGlobalFastMode, writeGlobalFastMode } from "./settings.ts";
 
@@ -44,12 +44,11 @@ function streamCodex(
 ) {
   if (!fast) return codexApi.streamSimple(model, context, options);
 
-  const reasoning = options?.reasoning ? clampThinkingLevel(model, options.reasoning) : undefined;
-  return codexApi.stream(model, context, {
-    ...options,
-    reasoningEffort: reasoning === "off" ? undefined : reasoning,
+  const streamOptions: OpenAICodexResponsesOptions = {
+    ...toCodexStreamOptions(model, context, options),
     serviceTier: FAST_SERVICE_TIER,
-  } as OpenAICodexResponsesOptions);
+  };
+  return codexApi.stream(model, context, streamOptions);
 }
 
 export function createCodexFastExtension(
@@ -111,10 +110,6 @@ export function createCodexFastExtension(
         }
       },
     });
-
-    pi.on("before_provider_request", (event, ctx) =>
-      injectFastServiceTier(event.payload, ctx, enabled),
-    );
   };
 }
 

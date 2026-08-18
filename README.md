@@ -4,17 +4,16 @@ A global Fast mode toggle for the Pi Coding Agent's ChatGPT/Codex subscription m
 
 ## Features
 
-- Injects `service_tier: "priority"` into Codex requests only when a strict safety baseline is met
+- Sets `serviceTier: "priority"` on Pi's Codex stream only when a strict safety baseline is met
 - Never selects or modifies model, thinking level, tools, or prompts
 - Never reads or stores OAuth tokens
 - Persists state in Pi's existing `~/.pi/agent/settings.json` — no separate config file
-- Fast mode is injected only when **all** of the following hold:
-  - provider is `openai-codex`
-  - API is `openai-codex-responses`
-  - model id is on the exact allowlist
-  - `ctx.modelRegistry.isUsingOAuth(model)` is `true`
-  - payload is an object and its model matches the current model id
-  - payload does not already contain `service_tier`
+- Fast mode is applied only when **all** of the following hold:
+  - the global Fast mode toggle is enabled
+  - the streamed model's provider is `openai-codex`
+  - the streamed model's API is `openai-codex-responses`
+  - the streamed model id is on the exact allowlist
+  - `modelRegistry.isUsingOAuth(model)` is `true`
 
 ## Install
 
@@ -36,7 +35,6 @@ pi install npm:@phoen1xcode/pi-codex-fast
 /fast off
 /fast status
 ```
-
 
 ## Configuration
 

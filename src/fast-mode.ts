@@ -2,18 +2,15 @@ import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 import {
   CODEX_PROVIDER_ID,
   CODEX_RESPONSES_API_ID,
-  FAST_SERVICE_TIER,
   SUPPORTED_MODEL_IDS,
   isSupportedModelId,
 } from "./models.ts";
 
 export type FastModeContext = Pick<ExtensionContext, "model" | "modelRegistry">;
 
-type Eligibility = { eligible: true } | { eligible: false; reason: string };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
+type Eligibility =
+  | { eligible: true; model: NonNullable<FastModeContext["model"]> }
+  | { eligible: false; reason: string };
 
 export function getEligibility(ctx: FastModeContext): Eligibility {
   const model = ctx.model;
@@ -42,21 +39,7 @@ export function getEligibility(ctx: FastModeContext): Eligibility {
       reason: "ChatGPT/Codex OAuth login is required",
     };
   }
-  return { eligible: true };
-}
-
-export function injectFastServiceTier(
-  payload: unknown,
-  ctx: FastModeContext,
-  enabled: boolean,
-): Record<string, unknown> | undefined {
-  if (!enabled || !getEligibility(ctx).eligible || !isRecord(payload)) {
-    return undefined;
-  }
-  if (payload.model !== ctx.model?.id || "service_tier" in payload) {
-    return undefined;
-  }
-  return { ...payload, service_tier: FAST_SERVICE_TIER };
+  return { eligible: true, model };
 }
 
 export function describeFastMode(ctx: FastModeContext, enabled: boolean): string {
@@ -64,7 +47,7 @@ export function describeFastMode(ctx: FastModeContext, enabled: boolean): string
 
   const eligibility = getEligibility(ctx);
   if (eligibility.eligible) {
-    return `Codex Fast mode is on globally and active for ${ctx.model?.provider}/${ctx.model?.id}.`;
+    return `Codex Fast mode is on globally and active for ${eligibility.model.provider}/${eligibility.model.id}.`;
   }
   return `Codex Fast mode is on globally but inactive: ${eligibility.reason}.`;
 }

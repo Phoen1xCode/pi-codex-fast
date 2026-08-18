@@ -1,6 +1,6 @@
 {
   "name": "@phoen1xcode/pi-codex-fast",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Pi Extension for OpenAI Codex Fast Mode.",
   "keywords": [
     "codex",
